@@ -1,6 +1,6 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2024 Adam Lock
+// Copyright (C) 2017-2022 Adam Lock
 
 //! Session functionality for the current open client connection. This module contains functions
 //! to call for all typically synchronous operations during an OPC UA session.
@@ -210,10 +210,20 @@ impl Session {
         }
 
         // Create a new session state
-        self.session_state = Arc::new(RwLock::new(SessionState::new(
+        // self.session_state = Arc::new(RwLock::new(SessionState::new(
+        //     self.ignore_clock_skew,
+        //     self.secure_channel.clone(),
+        //     self.subscription_state.clone(),
+        // )));
+        //
+        //
+        //
+        let exisisting_message_queue = self.session_state.read().message_queue.clone();
+        self.session_state = Arc::new(RwLock::new(SessionState::new_with_message_queue(
             self.ignore_clock_skew,
             self.secure_channel.clone(),
             self.subscription_state.clone(),
+            exisisting_message_queue,
         )));
 
         // Keep the existing transport, we should never drop a tokio runtime from a sync function
@@ -679,12 +689,14 @@ impl Session {
             }
         };
         // Spawn the task on the alloted runtime
-        let runtime = {
-            let session = trace_read_lock!(session);
-            session.runtime.clone()
-        };
-        let runtime = trace_lock!(runtime);
-        runtime.block_on(task);
+        // let runtime = {
+        //     let session = trace_read_lock!(session);
+        //     session.runtime.clone()
+        // };
+        // let runtime = trace_lock!(runtime);
+        // runtime.block_on(task);
+
+        tokio::runtime::Runtime::new().unwrap().block_on(task);
     }
 
     /// Polls on the session which basically dispatches any pending

@@ -1,6 +1,6 @@
 // OPCUA for Rust
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2024 Adam Lock
+// Copyright (C) 2017-2022 Adam Lock
 
 use std::{
     sync::{
@@ -186,6 +186,36 @@ impl SessionState {
             session_closed_callback: None,
             connection_status_callback: None,
             message_queue: Arc::new(RwLock::new(MessageQueue::new())),
+        }
+    }
+
+    pub fn new_with_message_queue(
+        ignore_clock_skew: bool,
+        secure_channel: Arc<RwLock<SecureChannel>>,
+        subscription_state: Arc<RwLock<SubscriptionState>>,
+        message_queue: Arc<RwLock<MessageQueue>>,
+    ) -> SessionState {
+        let id = NEXT_SESSION_ID.fetch_add(1, Ordering::Relaxed);
+        SessionState {
+            id,
+            client_offset: Duration::zero(),
+            ignore_clock_skew,
+            secure_channel,
+            connection_state: ConnectionStateMgr::new(),
+            request_timeout: Self::DEFAULT_REQUEST_TIMEOUT,
+            send_buffer_size: Self::SEND_BUFFER_SIZE,
+            receive_buffer_size: Self::RECEIVE_BUFFER_SIZE,
+            max_message_size: Self::MAX_BUFFER_SIZE,
+            max_chunk_count: constants::MAX_CHUNK_COUNT,
+            request_handle: Handle::new(Self::FIRST_REQUEST_HANDLE),
+            session_id: NodeId::null(),
+            authentication_token: NodeId::null(),
+            monitored_item_handle: Handle::new(Self::FIRST_MONITORED_ITEM_HANDLE),
+            subscription_acknowledgements: Vec::new(),
+            subscription_state,
+            session_closed_callback: None,
+            connection_status_callback: None,
+            message_queue,
         }
     }
 
